@@ -9,11 +9,11 @@
     import { HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, resetTimeoutDuration, CoverSizeWidth, CoverSizeHeight, threshold, coverPositionX, coverPositionY, congratulationSizeWidth, congratulationSizeHeight, congratulationPositionX, congratulationPositionY } from './getimage.js';
 
     document.addEventListener("DOMContentLoaded", function () {
-    const canvasBackground = document.getElementById("backgroundCanvas");
-    const ctxBackground = canvasBackground.getContext("2d");
+        const canvasBackground = document.getElementById("backgroundCanvas");
+    const ctxBackground = canvasBackground.getContext("2d", { willReadFrequently: true });
 
     const canvasCover = document.getElementById("coverCanvas");
-    const ctxCover = canvasCover.getContext("2d");
+    const ctxCover = canvasCover.getContext("2d", { willReadFrequently: true });
 
     const blueSquareImage = new Image();
     const coverImage = new Image();
@@ -98,21 +98,27 @@
             ctxCover.beginPath();  // Reset the drawing path
         }
 
-    function erase(e) {
-        if (!isDrawing || eraseComplete) return;
-        clearTimeout(eraseImageTimer);
-        const { x, y } = getPosition(e);
-        ctxCover.lineWidth = 40;
-        ctxCover.lineCap = "round";
-        ctxCover.lineTo(x, y);
-        ctxCover.stroke();
-        ctxCover.beginPath();
-        ctxCover.moveTo(x, y);
-        ctxCover.globalCompositeOperation = "destination-out";
-        
-        checkErasedArea();
-        startEraseImageTimer();
-    }
+        function erase(e) {
+    if (!isDrawing || eraseComplete) return;
+    clearTimeout(eraseImageTimer);
+
+    const { x, y } = getPosition(e);
+
+    // Set a max limit for the line width
+    const maxLineWidth = 50;
+    ctxCover.lineWidth = Math.min(40, maxLineWidth); // Ensure the width doesn't exceed the max value
+
+    ctxCover.lineCap = "round";
+    ctxCover.lineTo(x, y);
+    ctxCover.stroke();
+    ctxCover.beginPath();
+    ctxCover.moveTo(x, y);
+    ctxCover.globalCompositeOperation = "destination-out";
+    
+    checkErasedArea();
+    startEraseImageTimer();
+}
+
 
     function checkErasedArea() {
         const imageData = ctxCover.getImageData(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
@@ -160,7 +166,7 @@
         canvasCover.addEventListener("touchmove", handleMove, { passive: false });
        canvasCover.addEventListener("touchend", handleEnd, { passive: false });
 
-    function startEraseImageTimer() {
+   /* function startEraseImageTimer() {
         clearTimeout(eraseImageTimer);
         if (eraseStarted) {
             eraseImageTimer = setTimeout(() => {
@@ -170,7 +176,7 @@
                 startResetGameTimer();
             }, eraseTimeoutDuration);
         }
-    }
+    }*/
 
     function startResetGameTimer() {
         clearTimeout(resetGameTimer);
