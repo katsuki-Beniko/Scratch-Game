@@ -49,7 +49,7 @@
     function loadHiddenImage() {
         blueSquareImage.src = HiddenImageSrc;
         blueSquareImage.onload = () => {
-            ctxBackground.drawImage(blueSquareImage, 0, 0, canvasBackground.width, canvasBackground.height);
+            ctxBackground.drawImage(blueSquareImage, coverPositionX, coverPositionY, canvasBackground.width, canvasBackground.height);
         };
     }
 
