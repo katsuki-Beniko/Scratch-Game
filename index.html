@@ -72,7 +72,7 @@
             const scaleY = canvasCover.height / rect.height;
 
             if (e.touches) { // Mobile touch events
-                const touch = e.touches[0];
+                const touch = e.touches[0]; // Get the first touch
                 return {
                     x: (touch.clientX - rect.left) * scaleX,
                     y: (touch.clientY - rect.top) * scaleY
@@ -95,7 +95,7 @@
 
         function stopDrawing() {
             isDrawing = false;
-            ctxCover.beginPath();
+            ctxCover.beginPath();  // Reset the drawing path
         }
 
         function erase(e) {
@@ -143,7 +143,9 @@
 
         function handleMove(e) {
             e.preventDefault();  // Prevent scrolling on touch
-            erase(e);
+            if (isDrawing) {
+                erase(e);  // Continuously erase while the user is dragging/touching
+            }
         }
 
         function handleEnd(e) {
