@@ -32,10 +32,8 @@
 
     canvasBackground.width = containerWidth;
     canvasBackground.height = containerHeight;
-    const dpr = window.devicePixelRatio || 1;
-canvasCover.width = containerWidth * dpr;
-canvasCover.height = containerHeight * dpr;
-ctxCover.scale(dpr, dpr);
+    canvasCover.width = containerWidth;
+    canvasCover.height = containerHeight;
 
     // Load the cover image first
     function loadCoverImage() {
