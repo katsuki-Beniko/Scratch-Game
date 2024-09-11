@@ -9,7 +9,7 @@
     import { HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, resetTimeoutDuration, CoverSizeWidth, CoverSizeHeight, threshold, coverPositionX, coverPositionY, congratulationSizeWidth, congratulationSizeHeight, congratulationPositionX, congratulationPositionY } from './getimage.js';
 
     document.addEventListener("DOMContentLoaded", function () {
-        const canvasBackground = document.getElementById("backgroundCanvas");
+    const canvasBackground = document.getElementById("backgroundCanvas");
     const ctxBackground = canvasBackground.getContext("2d", { willReadFrequently: true });
 
     const canvasCover = document.getElementById("coverCanvas");
@@ -65,25 +65,25 @@
 
     loadCoverImage();
 
-        // Handle mouse and touch events
-        function getPosition(e) {
-            const rect = canvasCover.getBoundingClientRect();
-            const scaleX = canvasCover.width / rect.width;
-            const scaleY = canvasCover.height / rect.height;
+    // Handle mouse and touch events
+    function getPosition(e) {
+        const rect = canvasCover.getBoundingClientRect();
+        const scaleX = canvasCover.width / rect.width;
+        const scaleY = canvasCover.height / rect.height;
 
-            if (e.touches) { // Mobile touch events
-                const touch = e.touches[0]; // Get the first touch
-                return {
-                    x: (touch.clientX - rect.left) * scaleX,
-                    y: (touch.clientY - rect.top) * scaleY
-                };
-            } else { // Mouse events
-                return {
-                    x: (e.clientX - rect.left) * scaleX,
-                    y: (e.clientY - rect.top) * scaleY
-                };
-            }
+        if (e.touches) { // Mobile touch events
+            const touch = e.touches[0]; // Get the first touch
+            return {
+                x: (touch.clientX - rect.left) * scaleX,
+                y: (touch.clientY - rect.top) * scaleY
+            };
+        } else { // Mouse events
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
         }
+    }
 
     function startDrawing(e) {
         if (eraseComplete) return;
@@ -93,32 +93,29 @@
         startEraseImageTimer();
     }
 
-        function stopDrawing() {
-            isDrawing = false;
-            ctxCover.beginPath();  // Reset the drawing path
-        }
+    function stopDrawing() {
+        isDrawing = false;
+        ctxCover.beginPath();  // Reset the drawing path
+    }
 
-        function erase(e) {
-    if (!isDrawing || eraseComplete) return;
-    clearTimeout(eraseImageTimer);
+    function erase(e) {
+        if (!isDrawing || eraseComplete) return;
 
-    const { x, y } = getPosition(e);
+        const { x, y } = getPosition(e);
 
-    // Set a max limit for the line width
-    const maxLineWidth = 50;
-    ctxCover.lineWidth = Math.min(40, maxLineWidth); // Ensure the width doesn't exceed the max value
-
-    ctxCover.lineCap = "round";
-    ctxCover.lineTo(x, y);
-    ctxCover.stroke();
-    ctxCover.beginPath();
-    ctxCover.moveTo(x, y);
-    ctxCover.globalCompositeOperation = "destination-out";
-    
-    checkErasedArea();
-    startEraseImageTimer();
-}
-
+        // Start erasing at the touch point
+        ctxCover.globalCompositeOperation = "destination-out";
+        ctxCover.lineWidth = 40;
+        ctxCover.lineCap = "round";
+        ctxCover.lineJoin = "round"; // Ensures smoother erasing
+        ctxCover.beginPath();
+        ctxCover.moveTo(x, y); // Start at the touch point
+        ctxCover.lineTo(x, y); // Ensure smooth transition
+        ctxCover.stroke();
+        ctxCover.globalCompositeOperation = "source-over"; // Reset the composite mode
+        
+        checkErasedArea(); // Check if the erasing threshold has been met
+    }
 
     function checkErasedArea() {
         const imageData = ctxCover.getImageData(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
@@ -140,33 +137,33 @@
         }
     }
 
-        // Support both mouse and touch events
-        function handleStart(e) {
-            e.preventDefault();  // Prevent scrolling on touch
-            startDrawing(e);
+    // Support both mouse and touch events
+    function handleStart(e) {
+        e.preventDefault();  // Prevent scrolling on touch
+        startDrawing(e);
+    }
+
+    function handleMove(e) {
+        e.preventDefault();  // Prevent scrolling on touch
+        if (isDrawing) {
+            erase(e);  // Continuously erase while the user is dragging/touching
         }
+    }
 
-        function handleMove(e) {
-            e.preventDefault();  // Prevent scrolling on touch
-            if (isDrawing) {
-                erase(e);  // Continuously erase while the user is dragging/touching
-            }
-        }
+    function handleEnd(e) {
+        e.preventDefault();
+        stopDrawing();
+    }
 
-        function handleEnd(e) {
-            e.preventDefault();
-            stopDrawing();
-        }
+    canvasCover.addEventListener("mousedown", handleStart);
+    canvasCover.addEventListener("mousemove", handleMove);
+    canvasCover.addEventListener("mouseup", handleEnd);
 
-        canvasCover.addEventListener("mousedown", handleStart);
-        canvasCover.addEventListener("mousemove", handleMove);
-        canvasCover.addEventListener("mouseup", handleEnd);
+    canvasCover.addEventListener("touchstart", handleStart, { passive: false });
+    canvasCover.addEventListener("touchmove", handleMove, { passive: false });
+    canvasCover.addEventListener("touchend", handleEnd, { passive: false });
 
-        canvasCover.addEventListener("touchstart", handleStart, { passive: false });
-        canvasCover.addEventListener("touchmove", handleMove, { passive: false });
-       canvasCover.addEventListener("touchend", handleEnd, { passive: false });
-
-   /* function startEraseImageTimer() {
+    function startEraseImageTimer() {
         clearTimeout(eraseImageTimer);
         if (eraseStarted) {
             eraseImageTimer = setTimeout(() => {
@@ -176,7 +173,7 @@
                 startResetGameTimer();
             }, eraseTimeoutDuration);
         }
-    }*/
+    }
 
     function startResetGameTimer() {
         clearTimeout(resetGameTimer);
@@ -185,6 +182,7 @@
         }, resetTimeoutDuration);
     }
 });
+
 
     </script>
 </head>
