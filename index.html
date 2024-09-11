@@ -98,22 +98,28 @@
             ctxCover.beginPath();  // Reset the drawing path
         }
 
-    function erase(e) {
-        if (!isDrawing || eraseComplete) return;
-        clearTimeout(eraseImageTimer);
-        const { x, y } = getPosition(e);
+        let debounceTimer;
 
-       
+function erase(e) {
+    if (!isDrawing || eraseComplete) return;
+    clearTimeout(eraseImageTimer);
+    
+    const { x, y } = getPosition(e);
+    
+    if (debounceTimer) clearTimeout(debounceTimer);  // Clear the debounce timer
+    debounceTimer = setTimeout(() => {
         ctxCover.lineWidth = 40;
         ctxCover.lineCap = "round";
         ctxCover.lineTo(x, y);
         ctxCover.stroke();
         ctxCover.beginPath();
         ctxCover.moveTo(x, y);
- ctxCover.globalCompositeOperation = "destination-out";
+        ctxCover.globalCompositeOperation = "destination-out";
+        
         checkErasedArea();
         startEraseImageTimer();
-    }
+    }, 10);  // Delay the erase function slightly to prevent excessive calls
+}
 
     function checkErasedArea() {
         const imageData = ctxCover.getImageData(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
@@ -149,9 +155,10 @@
         }
 
         function handleEnd(e) {
-            e.preventDefault();
-            stopDrawing();
-        }
+    // e.preventDefault();  // You might want to remove this for 'touchend'
+    stopDrawing();
+}
+
 
         canvasCover.addEventListener("mousedown", handleStart);
         canvasCover.addEventListener("mousemove", handleMove);
@@ -159,7 +166,7 @@
 
         canvasCover.addEventListener("touchstart", handleStart, { passive: false });
         canvasCover.addEventListener("touchmove", handleMove, { passive: false });
-        canvasCover.addEventListener("touchend", handleEnd);
+        canvasCover.addEventListener("touchend", handleEnd, { passive: false });
 
     function startEraseImageTimer() {
         clearTimeout(eraseImageTimer);
@@ -185,8 +192,8 @@
 </head>
 <body>
     <div id="canvas-container">
-        <canvas id="backgroundCanvas"></canvas>
-        <canvas id="coverCanvas"></canvas>
+        <canvas id="backgroundCanvas" canvasCover.style.touchAction = "none";  // Prevent scrolling/zooming on touch events></canvas>
+        <canvas id="coverCanvas" canvasCover.style.touchAction = "none";  // Prevent scrolling/zooming on touch events></canvas>
     </div>
 </body>
 </html>
