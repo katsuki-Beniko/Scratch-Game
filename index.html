@@ -9,30 +9,27 @@
     import { HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, resetTimeoutDuration, CoverSizeWidth, CoverSizeHeight, threshold, coverPositionX, coverPositionY, congratulationSizeWidth, congratulationSizeHeight, congratulationPositionX, congratulationPositionY } from './getimage.js';
 
     document.addEventListener("DOMContentLoaded", function () {
-        const canvasBackground = document.getElementById("backgroundCanvas"); // Canvas for Blue Square
+        const canvasBackground = document.getElementById("backgroundCanvas");
         const ctxBackground = canvasBackground.getContext("2d");
 
-        const canvasCover = document.getElementById("coverCanvas"); // Canvas for Red Square
+        const canvasCover = document.getElementById("coverCanvas");
         const ctxCover = canvasCover.getContext("2d");
 
-        const blueSquareImage = new Image();  // Hidden image (background)
-        const coverImage = new Image();   // Cover image (foreground)
-        const congratsImage = new Image();  // Congratulations image
+        const blueSquareImage = new Image();
+        const coverImage = new Image();
+        const congratsImage = new Image();
 
-        let isDrawing = false;  // Track whether the mouse is pressed and drawing
-        let eraseStarted = false;  // Track whether the user has started erasing
-        let eraseComplete = false; // Track if the cover has been fully erased by timer
+        let isDrawing = false;
+        let eraseStarted = false;
+        let eraseComplete = false;
         const container = document.getElementById("canvas-container");
 
-        // Set canvas sizes to match the container's size
         const containerWidth = container.offsetWidth;
         const containerHeight = container.offsetHeight;
 
-        // Timer variables
-        let eraseImageTimer;  // Timer for inactivity to erase the image
-        let resetGameTimer;   // Timer for resetting the game
+        let eraseImageTimer;
+        let resetGameTimer;
 
-        // Set canvas dimensions based on the container size
         canvasBackground.width = containerWidth;
         canvasBackground.height = containerHeight;
         canvasCover.width = containerWidth;
@@ -40,173 +37,135 @@
 
         // Load the cover image first
         function loadCoverImage() {
-            coverImage.src = CoverImageSrc;  // Use the imported image path
+            coverImage.src = CoverImageSrc;
             coverImage.onload = () => {
-                ctxCover.globalCompositeOperation = "source-over";  // Draw cover image on top layer
-                ctxCover.drawImage(coverImage, coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);  // Draw the cover image
-
-                // Once the cover is fully loaded, load the hidden image
+                ctxCover.globalCompositeOperation = "source-over";
+                ctxCover.drawImage(coverImage, coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
                 loadHiddenImage();
             };
         }
 
         // Load the hidden image (background)
         function loadHiddenImage() {
-            blueSquareImage.src = HiddenImageSrc;  // Use the imported image path
+            blueSquareImage.src = HiddenImageSrc;
             blueSquareImage.onload = () => {
-                // Draw hidden image to fill the entire canvas
                 ctxBackground.drawImage(blueSquareImage, 0, 0, canvasBackground.width, canvasBackground.height);
             };
         }
 
         // Load the congratulations image
         function loadCongratsImage() {
-            congratsImage.src = CongratsImageSrc;  // Use the imported congratulation image path
+            congratsImage.src = CongratsImageSrc;
             congratsImage.onload = () => {
-                // Draw the congratulations image over the canvas when loaded
-                ctxCover.globalCompositeOperation = "source-over";  // Make sure we're drawing over the canvas
-                ctxCover.clearRect(0, 0, canvasCover.width, canvasCover.height); // Clear the cover
-                ctxCover.drawImage(congratsImage, congratulationPositionX, congratulationPositionY, congratulationSizeWidth, congratulationSizeHeight);  // Draw the congrats image
+                ctxCover.globalCompositeOperation = "source-over";
+                ctxCover.clearRect(0, 0, canvasCover.width, canvasCover.height);
+                ctxCover.drawImage(congratsImage, congratulationPositionX, congratulationPositionY, congratulationSizeWidth, congratulationSizeHeight);
             };
         }
 
-        // Trigger cover image load first
         loadCoverImage();
 
-        // Handle mouse down (start erasing)
-        canvasCover.addEventListener("mousedown", (e) => {
-            if (eraseComplete) return;  // Don't restart erasing after auto-erase
-
-            isDrawing = true;  // Start erasing
-            eraseStarted = true;  // Mark that erasing has started
-            erase(e);  // Start immediately on mousedown
-
-            // Only start the inactivity timer after the user starts erasing
-            startEraseImageTimer();
-        });
-
-        // Handle mouse move (continue erasing)
-        canvasCover.addEventListener("mousemove", erase);
-
-        // Stop erasing when mouse is released
-        canvasCover.addEventListener("mouseup", () => {
-            isDrawing = false;
-            ctxCover.beginPath();  // Reset the path after stopping drawing
-        });
-
-        // Function to erase the cover when the mouse moves
-        function erase(e) {
-            if (!isDrawing || eraseComplete) return;
-
-            // Clear the inactivity timer since the user is erasing
-            clearTimeout(eraseImageTimer);
-
-            const rect = canvasCover.getBoundingClientRect();  // Get the canvas' position relative to the window
-
-            // Calculate the scale factor for the canvas
+        // Handle mouse and touch events
+        function getPosition(e) {
+            const rect = canvasCover.getBoundingClientRect();
             const scaleX = canvasCover.width / rect.width;
             const scaleY = canvasCover.height / rect.height;
 
-            // Calculate the mouse position relative to the canvas, adjusted for scaling
-            const x = (e.clientX - rect.left) * scaleX;  // Mouse X position relative to the canvas
-            const y = (e.clientY - rect.top) * scaleY;   // Mouse Y position relative to the canvas
+            if (e.touches) { // Mobile touch events
+                const touch = e.touches[0];
+                return {
+                    x: (touch.clientX - rect.left) * scaleX,
+                    y: (touch.clientY - rect.top) * scaleY
+                };
+            } else { // Mouse events
+                return {
+                    x: (e.clientX - rect.left) * scaleX,
+                    y: (e.clientY - rect.top) * scaleY
+                };
+            }
+        }
 
-            ctxCover.globalCompositeOperation = "destination-out";  // This makes the brush erase the cover only
-
-            ctxCover.lineWidth = 40;  // Brush size (the area to be erased)
-            ctxCover.lineCap = "round";  // Round the edges of the brush
-
-            ctxCover.lineTo(x, y);  // Draw from the previous position to the current position
-            ctxCover.stroke();  // Apply the stroke (erase)
-            ctxCover.beginPath();  // Start a new path to keep the stroke continuous
-            ctxCover.moveTo(x, y);  // Move the path to the new location for the next stroke
-
-            // After each stroke, check how much of the cover has been erased
-            checkErasedArea();
-
-            // Reset the inactivity timer after each erasure
+        function startDrawing(e) {
+            if (eraseComplete) return;
+            isDrawing = true;
+            eraseStarted = true;
+            erase(e);
             startEraseImageTimer();
         }
 
-        // Function to check how much of the cover has been erased
+        function stopDrawing() {
+            isDrawing = false;
+            ctxCover.beginPath();
+        }
+
+        function erase(e) {
+            if (!isDrawing || eraseComplete) return;
+            clearTimeout(eraseImageTimer);
+            const { x, y } = getPosition(e);
+
+            ctxCover.globalCompositeOperation = "destination-out";
+            ctxCover.lineWidth = 40;
+            ctxCover.lineCap = "round";
+            ctxCover.lineTo(x, y);
+            ctxCover.stroke();
+            ctxCover.beginPath();
+            ctxCover.moveTo(x, y);
+
+            checkErasedArea();
+            startEraseImageTimer();
+        }
+
         function checkErasedArea() {
-            // Only check within the cover's defined area
             const imageData = ctxCover.getImageData(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
             const totalPixels = imageData.width * imageData.height;
             let erasedPixels = 0;
 
-            // Loop through the pixels and count transparent (erased) ones
             for (let i = 0; i < totalPixels * 4; i += 4) {
-                if (imageData.data[i + 3] === 0) {  // Alpha channel is 0, meaning it's fully transparent
+                if (imageData.data[i + 3] === 0) {
                     erasedPixels++;
                 }
             }
 
             const erasedPercentage = erasedPixels / totalPixels;
 
-            // If the erased area exceeds the threshold, clear the cover fully
             if (erasedPercentage > threshold) {
-                ctxCover.clearRect(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);  // Clear the entire cover in its area
-
-                // Load and display the congratulations image after erasing
+                ctxCover.clearRect(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
                 loadCongratsImage();
-
-                // Start the reset game timer after the cover is fully erased
                 startResetGameTimer();
             }
         }
 
-        // Function to reset the game (optional)
-        /*function resetGame() {
-            // Redraw the cover to restart the game
-            ctxCover.globalCompositeOperation = "source-over";  // Reset the composite operation
-            ctxCover.drawImage(coverImage, coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);  // Draw the cover image
-            eraseComplete = false;  // Allow the erasing to happen again
-        }*/
+        canvasCover.addEventListener("mousedown", startDrawing);
+        canvasCover.addEventListener("mousemove", erase);
+        canvasCover.addEventListener("mouseup", stopDrawing);
+        canvasCover.addEventListener("touchstart", startDrawing);
+        canvasCover.addEventListener("touchmove", erase);
+        canvasCover.addEventListener("touchend", stopDrawing);
 
-        // Start the inactivity timer, and automatically erase after predetermined seconds of inactivity
         function startEraseImageTimer() {
-            clearTimeout(eraseImageTimer);  // Clear any existing timer
-
-            // Only start the timer if the user has begun erasing
+            clearTimeout(eraseImageTimer);
             if (eraseStarted) {
                 eraseImageTimer = setTimeout(() => {
-                    // Automatically erase the entire cover if there's no activity for the set duration
                     ctxCover.clearRect(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
-                    eraseComplete = true;  // Mark that the auto-erase has completed
-
-                    // Stop the timer after completing the erase and prevent restarting
-                    clearTimeout(eraseImageTimer);
-
-                    // Load and display the congratulations image after inactivity auto-erases the cover
+                    eraseComplete = true;
                     loadCongratsImage();
-
-                    // Start the reset game timer once the image is auto-erased
                     startResetGameTimer();
                 }, eraseTimeoutDuration);
             }
         }
 
-        // Start the timer to reset the game (optional)
-        /*function startResetGameTimer() {
-            clearTimeout(resetGameTimer);  // Clear any existing reset timer
-
+        function startResetGameTimer() {
+            clearTimeout(resetGameTimer);
             resetGameTimer = setTimeout(() => {
-                // Reset the game after the reset timeout duration
-                resetGame();
+                // Reset game if needed
             }, resetTimeoutDuration);
-        }*/
+        }
     });
-
     </script>
 </head>
 <body>
-    <!-- Container for stacking the canvases -->
     <div id="canvas-container">
-        <!-- Blue Square is drawn in the background -->
         <canvas id="backgroundCanvas"></canvas>
-
-        <!-- Red Square (scratchable cover) is drawn on top -->
         <canvas id="coverCanvas"></canvas>
     </div>
 </body>
