@@ -72,7 +72,7 @@
             const scaleY = canvasCover.height / rect.height;
 
             if (e.touches) { // Mobile touch events
-                const touch = e.touches[0]; // Get the first touch
+                const touch = e.touches[0];
                 return {
                     x: (touch.clientX - rect.left) * scaleX,
                     y: (touch.clientY - rect.top) * scaleY
@@ -95,7 +95,7 @@
 
         function stopDrawing() {
             isDrawing = false;
-            ctxCover.beginPath();  // Reset the drawing path
+            ctxCover.beginPath();
         }
 
         function erase(e) {
@@ -135,31 +135,28 @@
             }
         }
 
-        // Support both mouse and touch events
-        function handleStart(e) {
-            e.preventDefault();  // Prevent scrolling on touch
-            startDrawing(e);
-        }
+        canvasCover.addEventListener("mousedown", startDrawing);
+        canvasCover.addEventListener("mousemove", erase);
+        canvasCover.addEventListener("mouseup", stopDrawing);
+        canvasCover.addEventListener("touchstart", startDrawing);
+        canvasCover.addEventListener("touchmove", erase);
+        canvasCover.addEventListener("touchend", stopDrawing);
 
-        function handleMove(e) {
-            e.preventDefault();  // Prevent scrolling on touch
-            if (isDrawing) {
-                erase(e);  // Continuously erase while the user is dragging/touching
-            }
-        }
+        // Handle touch events for mobile
+canvasCover.addEventListener("touchstart", (e) => {
+    e.preventDefault(); // Prevent scrolling when touching the canvas
+    startDrawing(e);
+});
 
-        function handleEnd(e) {
-            e.preventDefault();
-            stopDrawing();
-        }
+canvasCover.addEventListener("touchmove", (e) => {
+    e.preventDefault(); // Prevent scrolling when touching the canvas
+    erase(e);
+});
 
-        canvasCover.addEventListener("mousedown", handleStart);
-        canvasCover.addEventListener("mousemove", handleMove);
-        canvasCover.addEventListener("mouseup", handleEnd);
-
-        canvasCover.addEventListener("touchstart", handleStart, { passive: false });
-        canvasCover.addEventListener("touchmove", handleMove, { passive: false });
-        canvasCover.addEventListener("touchend", handleEnd);
+canvasCover.addEventListener("touchend", (e) => {
+    e.preventDefault(); // Prevent scrolling when touching the canvas
+    stopDrawing();
+});
 
         function startEraseImageTimer() {
             clearTimeout(eraseImageTimer);
