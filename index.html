@@ -135,12 +135,29 @@
             }
         }
 
-        canvasCover.addEventListener("mousedown", startDrawing);
-        canvasCover.addEventListener("mousemove", erase);
-        canvasCover.addEventListener("mouseup", stopDrawing);
-        canvasCover.addEventListener("touchstart", startDrawing);
-        canvasCover.addEventListener("touchmove", erase);
-        canvasCover.addEventListener("touchend", stopDrawing);
+        // Support both mouse and touch events
+        function handleStart(e) {
+            e.preventDefault();  // Prevent scrolling on touch
+            startDrawing(e);
+        }
+
+        function handleMove(e) {
+            e.preventDefault();  // Prevent scrolling on touch
+            erase(e);
+        }
+
+        function handleEnd(e) {
+            e.preventDefault();
+            stopDrawing();
+        }
+
+        canvasCover.addEventListener("mousedown", handleStart);
+        canvasCover.addEventListener("mousemove", handleMove);
+        canvasCover.addEventListener("mouseup", handleEnd);
+
+        canvasCover.addEventListener("touchstart", handleStart, { passive: false });
+        canvasCover.addEventListener("touchmove", handleMove, { passive: false });
+        canvasCover.addEventListener("touchend", handleEnd);
 
         function startEraseImageTimer() {
             clearTimeout(eraseImageTimer);
