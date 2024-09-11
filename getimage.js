@@ -16,5 +16,5 @@ export const coverPositionY = 2 // position Y of the cover image
 //adjust confetti or congratulation image
 export const congratulationSizeWidth = 600;  // Width of the congratulation image
 export const congratulationSizeHeight = 500;  // Height of the congratulation image
-export const congratulationPositionX = 10 // position X of the congratulation image
+export const congratulationPositionX = 10 // position X of the congratulataion image
 export const congratulationPositionY = 0 // position Y of the congratulation image

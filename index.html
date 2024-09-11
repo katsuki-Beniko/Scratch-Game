@@ -9,177 +9,155 @@
     import { HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, resetTimeoutDuration, CoverSizeWidth, CoverSizeHeight, threshold, coverPositionX, coverPositionY, congratulationSizeWidth, congratulationSizeHeight, congratulationPositionX, congratulationPositionY } from './getimage.js';
 
     document.addEventListener("DOMContentLoaded", function () {
-        const canvasBackground = document.getElementById("backgroundCanvas");
-        const ctxBackground = canvasBackground.getContext("2d");
+    const canvasBackground = document.getElementById("backgroundCanvas");
+    const ctxBackground = canvasBackground.getContext("2d");
 
-        const canvasCover = document.getElementById("coverCanvas");
-        const ctxCover = canvasCover.getContext("2d");
+    const canvasCover = document.getElementById("coverCanvas");
+    const ctxCover = canvasCover.getContext("2d");
 
-        const blueSquareImage = new Image();
-        const coverImage = new Image();
-        const congratsImage = new Image();
+    const blueSquareImage = new Image();
+    const coverImage = new Image();
+    const congratsImage = new Image();
 
-        let isDrawing = false;
-        let eraseStarted = false;
-        let eraseComplete = false;
-        const container = document.getElementById("canvas-container");
+    let isDrawing = false;
+    let eraseStarted = false;
+    let eraseComplete = false;
+    const container = document.getElementById("canvas-container");
 
-        const containerWidth = container.offsetWidth;
-        const containerHeight = container.offsetHeight;
+    const containerWidth = container.offsetWidth;
+    const containerHeight = container.offsetHeight;
 
-        let eraseImageTimer;
-        let resetGameTimer;
+    let eraseImageTimer;
+    let resetGameTimer;
 
-        canvasBackground.width = containerWidth;
-        canvasBackground.height = containerHeight;
-        canvasCover.width = containerWidth;
-        canvasCover.height = containerHeight;
+    canvasBackground.width = containerWidth;
+    canvasBackground.height = containerHeight;
+    canvasCover.width = containerWidth;
+    canvasCover.height = containerHeight;
 
-        // Load the cover image first
-        function loadCoverImage() {
-            coverImage.src = CoverImageSrc;
-            coverImage.onload = () => {
-                ctxCover.globalCompositeOperation = "source-over";
-                ctxCover.drawImage(coverImage, coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
-                loadHiddenImage();
-            };
-        }
+    // Load the cover image first
+    function loadCoverImage() {
+        coverImage.src = CoverImageSrc;
+        coverImage.onload = () => {
+            ctxCover.globalCompositeOperation = "source-over";
+            ctxCover.drawImage(coverImage, coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
+            loadHiddenImage();
+        };
+    }
 
-        // Load the hidden image (background)
-        function loadHiddenImage() {
-            blueSquareImage.src = HiddenImageSrc;
-            blueSquareImage.onload = () => {
-                ctxBackground.drawImage(blueSquareImage, 0, 0, canvasBackground.width, canvasBackground.height);
-            };
-        }
+    // Load the hidden image (background)
+    function loadHiddenImage() {
+        blueSquareImage.src = HiddenImageSrc;
+        blueSquareImage.onload = () => {
+            ctxBackground.drawImage(blueSquareImage, 0, 0, canvasBackground.width, canvasBackground.height);
+        };
+    }
 
-        // Load the congratulations image
-        function loadCongratsImage() {
-            congratsImage.src = CongratsImageSrc;
-            congratsImage.onload = () => {
-                ctxCover.globalCompositeOperation = "source-over";
-                ctxCover.clearRect(0, 0, canvasCover.width, canvasCover.height);
-                ctxCover.drawImage(congratsImage, congratulationPositionX, congratulationPositionY, congratulationSizeWidth, congratulationSizeHeight);
-            };
-        }
+    // Load the congratulations image
+    function loadCongratsImage() {
+        congratsImage.src = CongratsImageSrc;
+        congratsImage.onload = () => {
+            ctxCover.globalCompositeOperation = "source-over";
+            ctxCover.clearRect(0, 0, canvasCover.width, canvasCover.height);
+            ctxCover.drawImage(congratsImage, congratulationPositionX, congratulationPositionY, congratulationSizeWidth, congratulationSizeHeight);
+        };
+    }
 
-        loadCoverImage();
+    loadCoverImage();
 
-        // Handle mouse and touch events
-        function getPosition(e) {
-            const rect = canvasCover.getBoundingClientRect();
-            const scaleX = canvasCover.width / rect.width;
-            const scaleY = canvasCover.height / rect.height;
+    // Unified mouse and touch event handlers (use pointer events)
+    function getPosition(e) {
+        const rect = canvasCover.getBoundingClientRect();
+        const scaleX = canvasCover.width / rect.width;
+        const scaleY = canvasCover.height / rect.height;
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
+    }
 
-            if (e.touches) { // Mobile touch events
-                const touch = e.touches[0]; // Get the first touch
-                return {
-                    x: (touch.clientX - rect.left) * scaleX,
-                    y: (touch.clientY - rect.top) * scaleY
-                };
-            } else { // Mouse events
-                return {
-                    x: (e.clientX - rect.left) * scaleX,
-                    y: (e.clientY - rect.top) * scaleY
-                };
+    function startDrawing(e) {
+        if (eraseComplete) return;
+        isDrawing = true;
+        eraseStarted = true;
+        erase(e);
+        startEraseImageTimer();
+    }
+
+    function stopDrawing() {
+        isDrawing = false;
+        ctxCover.beginPath();
+    }
+
+    function erase(e) {
+        if (!isDrawing || eraseComplete) return;
+        clearTimeout(eraseImageTimer);
+        const { x, y } = getPosition(e);
+
+        ctxCover.globalCompositeOperation = "destination-out";
+        ctxCover.lineWidth = 40;
+        ctxCover.lineCap = "round";
+        ctxCover.lineTo(x, y);
+        ctxCover.stroke();
+        ctxCover.beginPath();
+        ctxCover.moveTo(x, y);
+
+        checkErasedArea();
+        startEraseImageTimer();
+    }
+
+    function checkErasedArea() {
+        const imageData = ctxCover.getImageData(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
+        const totalPixels = imageData.width * imageData.height;
+        let erasedPixels = 0;
+
+        for (let i = 0; i < totalPixels * 4; i += 4) {
+            if (imageData.data[i + 3] === 0) {
+                erasedPixels++;
             }
         }
 
-        function startDrawing(e) {
-            if (eraseComplete) return;
-            isDrawing = true;
-            eraseStarted = true;
-            erase(e);
-            startEraseImageTimer();
+        const erasedPercentage = erasedPixels / totalPixels;
+
+        if (erasedPercentage > threshold) {
+            ctxCover.clearRect(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
+            loadCongratsImage();
+            startResetGameTimer();
         }
+    }
 
-        function stopDrawing() {
-            isDrawing = false;
-            ctxCover.beginPath();  // Reset the drawing path
-        }
+    canvasCover.addEventListener("pointerdown", startDrawing);
+    canvasCover.addEventListener("pointermove", erase);
+    canvasCover.addEventListener("pointerup", stopDrawing);
 
-        function erase(e) {
-            if (!isDrawing || eraseComplete) return;
-            clearTimeout(eraseImageTimer);
-            const { x, y } = getPosition(e);
+    // Prevent scrolling on touch devices
+    canvasCover.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+    }, { passive: false });
+    canvasCover.addEventListener("touchmove", (e) => {
+        e.preventDefault();
+    }, { passive: false });
 
-            ctxCover.globalCompositeOperation = "destination-out";
-            ctxCover.lineWidth = 40;
-            ctxCover.lineCap = "round";
-            ctxCover.lineTo(x, y);
-            ctxCover.stroke();
-            ctxCover.beginPath();
-            ctxCover.moveTo(x, y);
-
-            checkErasedArea();
-            startEraseImageTimer();
-        }
-
-        function checkErasedArea() {
-            const imageData = ctxCover.getImageData(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
-            const totalPixels = imageData.width * imageData.height;
-            let erasedPixels = 0;
-
-            for (let i = 0; i < totalPixels * 4; i += 4) {
-                if (imageData.data[i + 3] === 0) {
-                    erasedPixels++;
-                }
-            }
-
-            const erasedPercentage = erasedPixels / totalPixels;
-
-            if (erasedPercentage > threshold) {
+    function startEraseImageTimer() {
+        clearTimeout(eraseImageTimer);
+        if (eraseStarted) {
+            eraseImageTimer = setTimeout(() => {
                 ctxCover.clearRect(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
+                eraseComplete = true;
                 loadCongratsImage();
                 startResetGameTimer();
-            }
+            }, eraseTimeoutDuration);
         }
+    }
 
-        // Support both mouse and touch events
-        function handleStart(e) {
-            e.preventDefault();  // Prevent scrolling on touch
-            startDrawing(e);
-        }
+    function startResetGameTimer() {
+        clearTimeout(resetGameTimer);
+        resetGameTimer = setTimeout(() => {
+            // Reset game if needed
+        }, resetTimeoutDuration);
+    }
+});
 
-        function handleMove(e) {
-            e.preventDefault();  // Prevent scrolling on touch
-            if (isDrawing) {
-                erase(e);  // Continuously erase while the user is dragging/touching
-            }
-        }
-
-        function handleEnd(e) {
-            e.preventDefault();
-            stopDrawing();
-        }
-
-        canvasCover.addEventListener("mousedown", handleStart);
-        canvasCover.addEventListener("mousemove", handleMove);
-        canvasCover.addEventListener("mouseup", handleEnd);
-
-        canvasCover.addEventListener("touchstart", handleStart, { passive: false });
-        canvasCover.addEventListener("touchmove", handleMove, { passive: false });
-        canvasCover.addEventListener("touchend", handleEnd);
-
-        function startEraseImageTimer() {
-            clearTimeout(eraseImageTimer);
-            if (eraseStarted) {
-                eraseImageTimer = setTimeout(() => {
-                    ctxCover.clearRect(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
-                    eraseComplete = true;
-                    loadCongratsImage();
-                    startResetGameTimer();
-                }, eraseTimeoutDuration);
-            }
-        }
-
-        function startResetGameTimer() {
-            clearTimeout(resetGameTimer);
-            resetGameTimer = setTimeout(() => {
-                // Reset game if needed
-            }, resetTimeoutDuration);
-        }
-    });
     </script>
 </head>
 <body>
