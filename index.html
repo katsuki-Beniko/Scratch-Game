@@ -65,16 +65,25 @@
 
     loadCoverImage();
 
-    // Unified mouse and touch event handlers (use pointer events)
-    function getPosition(e) {
-        const rect = canvasCover.getBoundingClientRect();
-        const scaleX = canvasCover.width / rect.width;
-        const scaleY = canvasCover.height / rect.height;
-        return {
-            x: (e.clientX - rect.left) * scaleX,
-            y: (e.clientY - rect.top) * scaleY
-        };
-    }
+        // Handle mouse and touch events
+        function getPosition(e) {
+            const rect = canvasCover.getBoundingClientRect();
+            const scaleX = canvasCover.width / rect.width;
+            const scaleY = canvasCover.height / rect.height;
+
+            if (e.touches) { // Mobile touch events
+                const touch = e.touches[0]; // Get the first touch
+                return {
+                    x: (touch.clientX - rect.left) * scaleX,
+                    y: (touch.clientY - rect.top) * scaleY
+                };
+            } else { // Mouse events
+                return {
+                    x: (e.clientX - rect.left) * scaleX,
+                    y: (e.clientY - rect.top) * scaleY
+                };
+            }
+        }
 
     function startDrawing(e) {
         if (eraseComplete) return;
@@ -84,24 +93,24 @@
         startEraseImageTimer();
     }
 
-    function stopDrawing() {
-        isDrawing = false;
-        ctxCover.beginPath();
-    }
+        function stopDrawing() {
+            isDrawing = false;
+            ctxCover.beginPath();  // Reset the drawing path
+        }
 
     function erase(e) {
         if (!isDrawing || eraseComplete) return;
         clearTimeout(eraseImageTimer);
         const { x, y } = getPosition(e);
 
-        ctxCover.globalCompositeOperation = "destination-out";
+       
         ctxCover.lineWidth = 40;
         ctxCover.lineCap = "round";
         ctxCover.lineTo(x, y);
         ctxCover.stroke();
         ctxCover.beginPath();
         ctxCover.moveTo(x, y);
-
+ ctxCover.globalCompositeOperation = "destination-out";
         checkErasedArea();
         startEraseImageTimer();
     }
@@ -126,17 +135,31 @@
         }
     }
 
-    canvasCover.addEventListener("pointerdown", startDrawing);
-    canvasCover.addEventListener("pointermove", erase);
-    canvasCover.addEventListener("pointerup", stopDrawing);
+        // Support both mouse and touch events
+        function handleStart(e) {
+            e.preventDefault();  // Prevent scrolling on touch
+            startDrawing(e);
+        }
 
-    // Prevent scrolling on touch devices
-    canvasCover.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-    }, { passive: false });
-    canvasCover.addEventListener("touchmove", (e) => {
-        e.preventDefault();
-    }, { passive: false });
+        function handleMove(e) {
+            e.preventDefault();  // Prevent scrolling on touch
+            if (isDrawing) {
+                erase(e);  // Continuously erase while the user is dragging/touching
+            }
+        }
+
+        function handleEnd(e) {
+            e.preventDefault();
+            stopDrawing();
+        }
+
+        canvasCover.addEventListener("mousedown", handleStart);
+        canvasCover.addEventListener("mousemove", handleMove);
+        canvasCover.addEventListener("mouseup", handleEnd);
+
+        canvasCover.addEventListener("touchstart", handleStart, { passive: false });
+        canvasCover.addEventListener("touchmove", handleMove, { passive: false });
+        canvasCover.addEventListener("touchend", handleEnd);
 
     function startEraseImageTimer() {
         clearTimeout(eraseImageTimer);
