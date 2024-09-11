@@ -32,8 +32,10 @@
 
     canvasBackground.width = containerWidth;
     canvasBackground.height = containerHeight;
-    canvasCover.width = containerWidth;
-    canvasCover.height = containerHeight;
+    const dpr = window.devicePixelRatio || 1;
+canvasCover.width = containerWidth * dpr;
+canvasCover.height = containerHeight * dpr;
+ctxCover.scale(dpr, dpr);
 
     // Load the cover image first
     function loadCoverImage() {
@@ -98,16 +100,10 @@
             ctxCover.beginPath();  // Reset the drawing path
         }
 
-        let debounceTimer;
-
-function erase(e) {
-    if (!isDrawing || eraseComplete) return;
-    clearTimeout(eraseImageTimer);
-    
-    const { x, y } = getPosition(e);
-    
-    if (debounceTimer) clearTimeout(debounceTimer);  // Clear the debounce timer
-    debounceTimer = setTimeout(() => {
+    function erase(e) {
+        if (!isDrawing || eraseComplete) return;
+        clearTimeout(eraseImageTimer);
+        const { x, y } = getPosition(e);
         ctxCover.lineWidth = 40;
         ctxCover.lineCap = "round";
         ctxCover.lineTo(x, y);
@@ -118,8 +114,7 @@ function erase(e) {
         
         checkErasedArea();
         startEraseImageTimer();
-    }, 10);  // Delay the erase function slightly to prevent excessive calls
-}
+    }
 
     function checkErasedArea() {
         const imageData = ctxCover.getImageData(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
@@ -155,10 +150,9 @@ function erase(e) {
         }
 
         function handleEnd(e) {
-    // e.preventDefault();  // You might want to remove this for 'touchend'
-    stopDrawing();
-}
-
+            e.preventDefault();
+            stopDrawing();
+        }
 
         canvasCover.addEventListener("mousedown", handleStart);
         canvasCover.addEventListener("mousemove", handleMove);
@@ -166,7 +160,7 @@ function erase(e) {
 
         canvasCover.addEventListener("touchstart", handleStart, { passive: false });
         canvasCover.addEventListener("touchmove", handleMove, { passive: false });
-        canvasCover.addEventListener("touchend", handleEnd, { passive: false });
+       canvasCover.addEventListener("touchend", handleEnd, { passive: false });
 
     function startEraseImageTimer() {
         clearTimeout(eraseImageTimer);
@@ -192,8 +186,8 @@ function erase(e) {
 </head>
 <body>
     <div id="canvas-container">
-        <canvas id="backgroundCanvas" canvasCover.style.touchAction = "none";  // Prevent scrolling/zooming on touch events></canvas>
-        <canvas id="coverCanvas" canvasCover.style.touchAction = "none";  // Prevent scrolling/zooming on touch events></canvas>
+        <canvas id="backgroundCanvas"></canvas>
+        <canvas id="coverCanvas"></canvas>
     </div>
 </body>
 </html>
