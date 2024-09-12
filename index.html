@@ -5,9 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scratch to Reveal</title>
     <link rel="stylesheet" href="./style.css">
+    <style>
+        /* Ensure touch actions like scrolling are disabled for the canvas */
+        canvas {
+            touch-action: none;
+        }
+    </style>
     <script type="module">
-
-import { HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, resetTimeoutDuration, CoverSizeWidth, CoverSizeHeight, threshold, coverPositionX, coverPositionY, congratulationSizeWidth, congratulationSizeHeight, congratulationPositionX, congratulationPositionY } from './getimage.js';
+    import {
+        HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, resetTimeoutDuration,
+        CoverSizeWidth, CoverSizeHeight, threshold, coverPositionX, coverPositionY,
+        congratulationSizeWidth, congratulationSizeHeight, congratulationPositionX, congratulationPositionY
+    } from './getimage.js';
 
     document.addEventListener("DOMContentLoaded", function () {
         const canvasBackground = document.getElementById("backgroundCanvas");
@@ -31,10 +40,16 @@ import { HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, 
         let eraseImageTimer;
         let resetGameTimer;
 
-        canvasBackground.width = containerWidth;
-        canvasBackground.height = containerHeight;
-        canvasCover.width = containerWidth;
-        canvasCover.height = containerHeight;
+        // Get device pixel ratio and adjust canvas size accordingly
+        const dpr = window.devicePixelRatio || 1;
+        canvasBackground.width = containerWidth * dpr;
+        canvasBackground.height = containerHeight * dpr;
+        canvasCover.width = containerWidth * dpr;
+        canvasCover.height = containerHeight * dpr;
+
+        // Scale the context to match the device pixel ratio
+        ctxBackground.scale(dpr, dpr);
+        ctxCover.scale(dpr, dpr);
 
         // Load the cover image first
         function loadCoverImage() {
@@ -66,7 +81,7 @@ import { HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, 
 
         loadCoverImage();
 
-        // Handle mouse and touch events
+        // Get position for touch and mouse events
         function getPosition(e) {
             const rect = canvasCover.getBoundingClientRect();
             const scaleX = canvasCover.width / rect.width;
@@ -86,33 +101,22 @@ import { HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, 
             }
         }
 
-        function startDrawing(e) {
-            if (eraseComplete) return;
-            isDrawing = true;
-            eraseStarted = true;
-            erase(e);
-            startEraseImageTimer();
-        }
-
-        function stopDrawing() {
-            isDrawing = false;
-            ctxCover.beginPath();  // Reset the drawing path
-        }
-
-        // Main erase function
+        // Handle erasing (main function)
         function erase(e) {
             if (!isDrawing || eraseComplete) return;
 
             const { x, y } = getPosition(e);
 
-            // Only erase in small circles (or areas)
+            // Dynamically adjust erase radius for mobile (smaller radius on phones)
+            const eraseRadius = window.innerWidth < 768 ? 10 : 20;  // 10px for phones, 20px for tablets/desktops
+
             ctxCover.globalCompositeOperation = "destination-out";
             ctxCover.beginPath();
-            ctxCover.arc(x, y, 20, 0, Math.PI * 2); // A circle of radius 20px
-            ctxCover.fill(); // Fill the arc to create a small erase circle
+            ctxCover.arc(x, y, eraseRadius, 0, Math.PI * 2);  // Erase area with dynamic radius
+            ctxCover.fill();
             ctxCover.globalCompositeOperation = "source-over"; // Reset the composite mode
 
-            checkErasedArea(); // Check if the erasing threshold has been met
+            checkErasedArea();
         }
 
         function checkErasedArea() {
@@ -135,16 +139,31 @@ import { HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, 
             }
         }
 
-        // Support both mouse and touch events
+        // Handle mouse and touch events
         function handleStart(e) {
             e.preventDefault();  // Prevent scrolling on touch
+            if (e.touches && e.touches.length > 1) return; // Disable multi-touch for mobile
             startDrawing(e);
         }
 
+        function startDrawing(e) {
+            if (eraseComplete) return;
+            isDrawing = true;
+            eraseStarted = true;
+            erase(e);  // Trigger the first erase action
+            startEraseImageTimer();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            ctxCover.beginPath();  // Reset the drawing path
+        }
+
+        // Support both mouse and touch events
         function handleMove(e) {
             e.preventDefault();  // Prevent scrolling on touch
             if (isDrawing) {
-                erase(e);  // Continuously erase while the user is dragging/touching
+                erase(e);  // Continuously erase while dragging or touching
             }
         }
 
@@ -161,6 +180,7 @@ import { HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, 
         canvasCover.addEventListener("touchmove", handleMove, { passive: false });
         canvasCover.addEventListener("touchend", handleEnd, { passive: false });
 
+        // Erase timeout for inactivity
         function startEraseImageTimer() {
             clearTimeout(eraseImageTimer);
             if (eraseStarted) {
@@ -173,6 +193,7 @@ import { HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, 
             }
         }
 
+        // Reset the game after a timeout
         function startResetGameTimer() {
             clearTimeout(resetGameTimer);
             resetGameTimer = setTimeout(() => {
