@@ -104,13 +104,11 @@
             };
         }
 
-
-
-        // Get position for touch and mouse events
+        // Get position for touch and mouse events, considering DPR and canvas scaling
         function getPosition(e) {
             const rect = canvasCover.getBoundingClientRect();
-            const scaleX = canvasCover.width / rect.width;
-            const scaleY = canvasCover.height / rect.height;
+            const scaleX = canvasCover.width / (rect.width * dpr);
+            const scaleY = canvasCover.height / (rect.height * dpr);
 
             if (e.touches) { // Mobile touch events
                 const touch = e.touches[0]; // Get the first touch
