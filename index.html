@@ -42,27 +42,55 @@
             // Scale the context for the device pixel ratio
             ctxBackground.scale(dpr, dpr);
             ctxCover.scale(dpr, dpr);
+
+            // Redraw the images after resizing
+            drawBackgroundImage(containerWidth, containerHeight);
+            drawCoverImage(containerWidth, containerHeight);
         }
 
         // Adjust canvas size on load and window resize
         adjustCanvasSize();
         window.addEventListener('resize', adjustCanvasSize);
 
-        // Load the cover image first
-        function loadCoverImage() {
-            coverImage.src = CoverImageSrc;
-            coverImage.onload = () => {
-                ctxCover.globalCompositeOperation = "source-over";
-                ctxCover.drawImage(coverImage, coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
-                loadHiddenImage();
+        // Load the hidden image (background) and scale it to fit the canvas
+        function drawBackgroundImage(containerWidth, containerHeight) {
+            blueSquareImage.src = HiddenImageSrc;
+            blueSquareImage.onload = () => {
+                // Get image aspect ratio
+                const imgAspectRatio = blueSquareImage.width / blueSquareImage.height;
+                const canvasAspectRatio = containerWidth / containerHeight;
+
+                let drawWidth, drawHeight, drawX, drawY;
+
+                // Adjust the image size to fit within the canvas while maintaining aspect ratio
+                if (imgAspectRatio > canvasAspectRatio) {
+                    drawWidth = containerWidth;
+                    drawHeight = containerWidth / imgAspectRatio;
+                    drawX = 0;
+                    drawY = (containerHeight - drawHeight) / 2;
+                } else {
+                    drawHeight = containerHeight;
+                    drawWidth = containerHeight * imgAspectRatio;
+                    drawX = (containerWidth - drawWidth) / 2;
+                    drawY = 0;
+                }
+
+                // Clear and draw the scaled image on the canvas
+                ctxBackground.clearRect(0, 0, canvasBackground.width, canvasBackground.height);
+                ctxBackground.drawImage(blueSquareImage, drawX, drawY, drawWidth, drawHeight);
             };
         }
 
-        // Load the hidden image (background)
-        function loadHiddenImage() {
-            blueSquareImage.src = HiddenImageSrc;
-            blueSquareImage.onload = () => {
-                ctxBackground.drawImage(blueSquareImage, coverPositionX, coverPositionY, canvasBackground.width, canvasBackground.height);
+        // Load the cover image and scale it to fit the canvas
+        function drawCoverImage(containerWidth, containerHeight) {
+            coverImage.src = CoverImageSrc;
+            coverImage.onload = () => {
+                const coverX = (containerWidth - CoverSizeWidth) / 2;
+                const coverY = (containerHeight - CoverSizeHeight) / 2;
+
+                ctxCover.globalCompositeOperation = "source-over";
+                ctxCover.clearRect(0, 0, canvasCover.width, canvasCover.height);
+                ctxCover.drawImage(coverImage, coverX, coverY, CoverSizeWidth, CoverSizeHeight);
             };
         }
 
@@ -76,7 +104,7 @@
             };
         }
 
-        loadCoverImage();
+
 
         // Get position for touch and mouse events
         function getPosition(e) {
@@ -192,7 +220,7 @@
 
         // Reset the game after a timeout
         function startResetGameTimer() {
-            clearTimeout(resetGameTimer);
+            clearTimeout(eraseTimeoutDuration);
             resetGameTimer = setTimeout(() => {
                 // Reset game if needed
             }, resetTimeoutDuration);
