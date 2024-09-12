@@ -167,29 +167,33 @@
                 ctxCover.fill();
             }
         }
-                function checkErasedArea() {
-            const scaledCoverWidth = CoverSizeWidth * dpr;
-            const scaledCoverHeight = CoverSizeHeight * dpr;
 
-            const imageData = ctxCover.getImageData(0, 0, scaledCoverWidth, scaledCoverHeight);
-            const totalPixels = imageData.width * imageData.height;
-            let erasedPixels = 0;
+        function checkErasedArea() {
+    // Use the scaled canvas dimensions for the image data
+    const scaledCoverWidth = CoverSizeWidth * dpr;
+    const scaledCoverHeight = CoverSizeHeight * dpr;
 
-            for (let i = 0; i < totalPixels * 4; i += 4) {
-                if (imageData.data[i + 3] === 0) {
-                    erasedPixels++;
-                }
-            }
+    // Get the image data from the cover canvas
+    const imageData = ctxCover.getImageData(0, 0, scaledCoverWidth, scaledCoverHeight);  // Adjust width and height for DPR
 
-            const erasedPercentage = erasedPixels / totalPixels;
+    const totalPixels = imageData.width * imageData.height;
+    let erasedPixels = 0;
 
-            if (erasedPercentage > threshold) {
-                ctxCover.clearRect(0, 0, scaledCoverWidth, scaledCoverHeight);
-                loadCongratsImage();
-                startResetGameTimer();
-            }
+    // Loop through all pixels and count fully transparent ones
+    for (let i = 0; i < totalPixels * 4; i += 4) {
+        if (imageData.data[i + 3] === 0) {  // Alpha channel is 0, meaning it's fully transparent
+            erasedPixels++;
         }
+    }
 
+    const erasedPercentage = erasedPixels / totalPixels;
+
+    if (erasedPercentage > threshold) {
+        ctxCover.clearRect(0, 0, scaledCoverWidth, scaledCoverHeight);  // Clear the entire cover
+        loadCongratsImage();
+        startResetGameTimer();
+    }
+}
 
 
         // Handle mouse and touch events
