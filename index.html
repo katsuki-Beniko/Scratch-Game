@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="./style.css">
     <script type="module">
 
-    import { HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, resetTimeoutDuration, CoverSizeWidth, CoverSizeHeight, threshold, coverPositionX, coverPositionY, congratulationSizeWidth, congratulationSizeHeight, congratulationPositionX, congratulationPositionY } from './getimage.js';
+    import { HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, resetTimeoutDuration, CoverSizeWidth, CoverSizeHeight, threshold, congratulationSizeWidth, congratulationSizeHeight, congratulationPositionX, congratulationPositionY } from './getimage.js';
 
     document.addEventListener("DOMContentLoaded", function () {
         const canvasBackground = document.getElementById("backgroundCanvas");
@@ -167,9 +167,11 @@
                 ctxCover.fill();
             }
         }
+                function checkErasedArea() {
+            const scaledCoverWidth = CoverSizeWidth * dpr;
+            const scaledCoverHeight = CoverSizeHeight * dpr;
 
-        function checkErasedArea() {
-            const imageData = ctxCover.getImageData(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
+            const imageData = ctxCover.getImageData(0, 0, scaledCoverWidth, scaledCoverHeight);
             const totalPixels = imageData.width * imageData.height;
             let erasedPixels = 0;
 
@@ -182,11 +184,13 @@
             const erasedPercentage = erasedPixels / totalPixels;
 
             if (erasedPercentage > threshold) {
-                ctxCover.clearRect(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
+                ctxCover.clearRect(0, 0, scaledCoverWidth, scaledCoverHeight);
                 loadCongratsImage();
                 startResetGameTimer();
             }
         }
+
+
 
         // Handle mouse and touch events
         function handleStart(e) {
@@ -236,7 +240,7 @@
             clearTimeout(eraseTimeoutDuration);
             if (eraseStarted) {
                 eraseTimeoutDuration = setTimeout(() => {
-                    ctxCover.clearRect(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
+                    ctxCover.clearRect(0, 0, CoverSizeWidth, CoverSizeHeight);
                     eraseComplete = true;
                     loadCongratsImage();
                     startResetGameTimer();
@@ -245,12 +249,13 @@
         }
 
         // Reset the game after a timeout
-        function startResetGameTimer() {
+   /*     function startResetGameTimer() {
             clearTimeout(eraseTimeoutDuration);
             resetGameTimer = setTimeout(() => {
                 // Reset game if needed
             }, resetTimeoutDuration);
         }
+            */
     });
     </script>
 </head>
