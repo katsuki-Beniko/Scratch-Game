@@ -23,6 +23,8 @@
         let isDrawing = false;
         let eraseStarted = false;
         let eraseComplete = false;
+        let lastPosition = null; // Keep track of the last position
+
         const container = document.getElementById("canvas-container");
 
         // Get device pixel ratio
@@ -124,7 +126,23 @@
             }
         }
 
-        // Handle erasing (main function)
+// Draw circles along the path between the last position and the current position for smooth erasing
+        function drawErasePath(x0, y0, x1, y1, eraseRadius) {
+            const distance = Math.hypot(x1 - x0, y1 - y0);
+            const steps = Math.ceil(distance / (eraseRadius / 2)); // Smaller steps for smoothness
+
+            for (let i = 0; i < steps; i++) {
+                const t = i / steps;
+                const x = x0 + (x1 - x0) * t;
+                const y = y0 + (y1 - y0) * t;
+
+                ctxCover.beginPath();
+                ctxCover.arc(x, y, eraseRadius, 0, Math.PI * 2);  // Erase area with dynamic radius
+                ctxCover.fill();
+            }
+        }
+
+    // Handle erasing (main function)
         function erase(e) {
             if (!isDrawing || eraseComplete) return;
 
@@ -134,13 +152,24 @@
             const eraseRadius = window.innerWidth < 768 ? 10 : 20;  // 10px for phones, 20px for tablets/desktops
 
             ctxCover.globalCompositeOperation = "destination-out";
-            ctxCover.beginPath();
-            ctxCover.arc(x, y, eraseRadius, 0, Math.PI * 2);  // Erase area with dynamic radius
-            ctxCover.fill();
-            ctxCover.globalCompositeOperation = "source-over"; // Reset the composite mode
 
-            checkErasedArea();
+            // If there was a previous position, draw circles along the path
+            if (lastPosition) {
+                drawErasePath(lastPosition.x, lastPosition.y, x, y, eraseRadius);
+            } else {
+                // Initial erase circle
+                ctxCover.beginPath();
+                ctxCover.arc(x, y, eraseRadius, 0, Math.PI * 2);
+                ctxCover.fill();
+            }
+
+            // Update last position
+            lastPosition = { x, y };
+
+            checkErasedArea();  // Continue checking if enough area is erased
         }
+
+
 
         function checkErasedArea() {
             const imageData = ctxCover.getImageData(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
@@ -173,12 +202,14 @@
             if (eraseComplete) return;
             isDrawing = true;
             eraseStarted = true;
+            lastPosition = null; // Reset last position
             erase(e);  // Trigger the first erase action
             startEraseImageTimer();
         }
 
         function stopDrawing() {
             isDrawing = false;
+            lastPosition = null;  // Reset last position
             ctxCover.beginPath();  // Reset the drawing path
         }
 
