@@ -1,18 +1,32 @@
+/* style.css */
 #canvas-container {
   position: relative;  /* Container to position the canvases relative to each other */
   width: 100%;  /* Make the container responsive */
   height: 100%; /* Full height */
   max-width: 720px;  /* Maximum width for the container */
   margin: 0 auto;  /* Center the canvases horizontally */
-  aspect-ratio: 4 / 3;  /* Optional: Lock the aspect ratio */
+  aspect-ratio: 4 / 3;  /* Lock the aspect ratio */
+  overflow: hidden;  /* Ensure content doesn't overflow */
 }
 
+/* The canvases will be stacked on top of each other */
 canvas {
   position: absolute;  /* Stack the canvases on top of each other */
   top: 0;   
   left: 0;
-
+  width: 100%;  /* Responsive canvas width */
+  height: 100%; /* Responsive canvas height */
+  touch-action: none;  /* Prevent default touch actions like scrolling */
 }
-canvas {
-  touch-action: none;
+
+@media only screen and (max-width: 768px) {
+  #canvas-container {
+    max-width: 500px;  /* Adjust the maximum width for phones */
+  }
+}
+
+@media only screen and (max-width: 480px) {
+  #canvas-container {
+    max-width: 300px;  /* Smaller width for very small screens */
+  }
 }

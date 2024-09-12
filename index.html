@@ -5,18 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scratch to Reveal</title>
     <link rel="stylesheet" href="./style.css">
-    <style>
-        /* Ensure touch actions like scrolling are disabled for the canvas */
-        canvas {
-            touch-action: none;
-        }
-    </style>
     <script type="module">
-    import {
-        HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, resetTimeoutDuration,
-        CoverSizeWidth, CoverSizeHeight, threshold, coverPositionX, coverPositionY,
-        congratulationSizeWidth, congratulationSizeHeight, congratulationPositionX, congratulationPositionY
-    } from './getimage.js';
+
+    import { HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, resetTimeoutDuration, CoverSizeWidth, CoverSizeHeight, threshold, coverPositionX, coverPositionY, congratulationSizeWidth, congratulationSizeHeight, congratulationPositionX, congratulationPositionY } from './getimage.js';
 
     document.addEventListener("DOMContentLoaded", function () {
         const canvasBackground = document.getElementById("backgroundCanvas");
@@ -34,22 +25,28 @@
         let eraseComplete = false;
         const container = document.getElementById("canvas-container");
 
-        const containerWidth = container.offsetWidth;
-        const containerHeight = container.offsetHeight;
-
-        let eraseImageTimer;
-        let resetGameTimer;
-
-        // Get device pixel ratio and adjust canvas size accordingly
+        // Get device pixel ratio
         const dpr = window.devicePixelRatio || 1;
-        canvasBackground.width = containerWidth * dpr;
-        canvasBackground.height = containerHeight * dpr;
-        canvasCover.width = containerWidth * dpr;
-        canvasCover.height = containerHeight * dpr;
 
-        // Scale the context to match the device pixel ratio
-        ctxBackground.scale(dpr, dpr);
-        ctxCover.scale(dpr, dpr);
+        // Dynamically adjust canvas size based on screen width
+        function adjustCanvasSize() {
+            const containerWidth = container.offsetWidth;
+            const containerHeight = container.offsetHeight;
+
+            // Adjust canvas size to match the container's dimensions
+            canvasBackground.width = containerWidth * dpr;
+            canvasBackground.height = containerHeight * dpr;
+            canvasCover.width = containerWidth * dpr;
+            canvasCover.height = containerHeight * dpr;
+
+            // Scale the context for the device pixel ratio
+            ctxBackground.scale(dpr, dpr);
+            ctxCover.scale(dpr, dpr);
+        }
+
+        // Adjust canvas size on load and window resize
+        adjustCanvasSize();
+        window.addEventListener('resize', adjustCanvasSize);
 
         // Load the cover image first
         function loadCoverImage() {
@@ -182,9 +179,9 @@
 
         // Erase timeout for inactivity
         function startEraseImageTimer() {
-            clearTimeout(eraseImageTimer);
+            clearTimeout(eraseTimeoutDuration);
             if (eraseStarted) {
-                eraseImageTimer = setTimeout(() => {
+                eraseTimeoutDuration = setTimeout(() => {
                     ctxCover.clearRect(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
                     eraseComplete = true;
                     loadCongratsImage();
