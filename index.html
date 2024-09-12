@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="./style.css">
     <script type="module">
 
-    import { HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, resetTimeoutDuration, CoverSizeWidth, CoverSizeHeight, threshold, congratulationSizeWidth, congratulationSizeHeight, congratulationPositionX, congratulationPositionY } from './getimage.js';
+    import { HiddenImageSrc, CoverImageSrc, CongratsImageSrc, eraseTimeoutDuration, resetTimeoutDuration, CoverSizeWidth, CoverSizeHeight, threshold, coverPositionX, coverPositionY, congratulationSizeWidth, congratulationSizeHeight, congratulationPositionX, congratulationPositionY } from './getimage.js';
 
     document.addEventListener("DOMContentLoaded", function () {
         const canvasBackground = document.getElementById("backgroundCanvas");
@@ -41,9 +41,7 @@
             canvasCover.width = containerWidth * dpr;
             canvasCover.height = containerHeight * dpr;
 
-            // Reset the scale on the contexts to account for DPR
-            ctxBackground.setTransform(1, 0, 0, 1, 0, 0); // Reset transform before applying scaling
-            ctxCover.setTransform(1, 0, 0, 1, 0, 0);      // Reset transform before applying scaling
+            // Scale the context for the device pixel ratio
             ctxBackground.scale(dpr, dpr);
             ctxCover.scale(dpr, dpr);
 
@@ -52,11 +50,9 @@
             drawCoverImage(containerWidth, containerHeight);
         }
 
-        // Add event listener for orientation changes
+        // Adjust canvas size on load and window resize
+        adjustCanvasSize();
         window.addEventListener('resize', adjustCanvasSize);
-        window.addEventListener('orientationchange', adjustCanvasSize);
-
-        adjustCanvasSize(); // Call it on load to initialize sizes
 
         // Load the hidden image (background) and scale it to fit the canvas
         function drawBackgroundImage(containerWidth, containerHeight) {
@@ -130,29 +126,7 @@
             }
         }
 
-        // Handle erasing (main function)
-        function erase(e) {
-            if (!isDrawing || eraseComplete) return;
-
-            const { x, y } = getPosition(e);
-
-            const eraseRadius = window.innerWidth < 768 ? 10 : 20;  // 10px for phones, 20px for tablets/desktops
-
-            ctxCover.globalCompositeOperation = "destination-out";
-
-            if (lastPosition) {
-                drawErasePath(lastPosition.x, lastPosition.y, x, y, eraseRadius);
-            } else {
-                ctxCover.beginPath();
-                ctxCover.arc(x, y, eraseRadius, 0, Math.PI * 2);
-                ctxCover.fill();
-            }
-
-            lastPosition = { x, y };
-            checkErasedArea();
-        }
-
-        // Continue drawing erase path to handle fast movement
+// Draw circles along the path between the last position and the current position for smooth erasing
         function drawErasePath(x0, y0, x1, y1, eraseRadius) {
             const distance = Math.hypot(x1 - x0, y1 - y0);
             const steps = Math.ceil(distance / (eraseRadius / 2)); // Smaller steps for smoothness
@@ -163,38 +137,59 @@
                 const y = y0 + (y1 - y0) * t;
 
                 ctxCover.beginPath();
-                ctxCover.arc(x, y, eraseRadius, 0, Math.PI * 2);
+                ctxCover.arc(x, y, eraseRadius, 0, Math.PI * 2);  // Erase area with dynamic radius
                 ctxCover.fill();
             }
         }
 
-        function checkErasedArea() {
-    // Use the scaled canvas dimensions for the image data
-    const scaledCoverWidth = CoverSizeWidth * dpr;
-    const scaledCoverHeight = CoverSizeHeight * dpr;
+    // Handle erasing (main function)
+        function erase(e) {
+            if (!isDrawing || eraseComplete) return;
 
-    // Get the image data from the cover canvas
-    const imageData = ctxCover.getImageData(0, 0, scaledCoverWidth, scaledCoverHeight);  // Adjust width and height for DPR
+            const { x, y } = getPosition(e);
 
-    const totalPixels = imageData.width * imageData.height;
-    let erasedPixels = 0;
+            // Dynamically adjust erase radius for mobile (smaller radius on phones)
+            const eraseRadius = window.innerWidth < 768 ? 10 : 20;  // 10px for phones, 20px for tablets/desktops
 
-    // Loop through all pixels and count fully transparent ones
-    for (let i = 0; i < totalPixels * 4; i += 4) {
-        if (imageData.data[i + 3] === 0) {  // Alpha channel is 0, meaning it's fully transparent
-            erasedPixels++;
+            ctxCover.globalCompositeOperation = "destination-out";
+
+            // If there was a previous position, draw circles along the path
+            if (lastPosition) {
+                drawErasePath(lastPosition.x, lastPosition.y, x, y, eraseRadius);
+            } else {
+                // Initial erase circle
+                ctxCover.beginPath();
+                ctxCover.arc(x, y, eraseRadius, 0, Math.PI * 2);
+                ctxCover.fill();
+            }
+
+            // Update last position
+            lastPosition = { x, y };
+
+            checkErasedArea();  // Continue checking if enough area is erased
         }
-    }
 
-    const erasedPercentage = erasedPixels / totalPixels;
 
-    if (erasedPercentage > threshold) {
-        ctxCover.clearRect(0, 0, scaledCoverWidth, scaledCoverHeight);  // Clear the entire cover
-        loadCongratsImage();
-        startResetGameTimer();
-    }
-}
 
+        function checkErasedArea() {
+            const imageData = ctxCover.getImageData(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
+            const totalPixels = imageData.width * imageData.height;
+            let erasedPixels = 0;
+
+            for (let i = 0; i < totalPixels * 4; i += 4) {
+                if (imageData.data[i + 3] === 0) {
+                    erasedPixels++;
+                }
+            }
+
+            const erasedPercentage = erasedPixels / totalPixels;
+
+            if (erasedPercentage > threshold) {
+                ctxCover.clearRect(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
+                loadCongratsImage();
+                startResetGameTimer();
+            }
+        }
 
         // Handle mouse and touch events
         function handleStart(e) {
