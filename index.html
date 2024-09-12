@@ -24,6 +24,7 @@
         let eraseStarted = false;
         let eraseComplete = false;
         let lastPosition = null; // Keep track of the last position
+        let eraseTimerId; // Variable to hold the timeout ID
 
         const container = document.getElementById("canvas-container");
 
@@ -235,27 +236,48 @@
         canvasCover.addEventListener("touchmove", handleMove, { passive: false });
         canvasCover.addEventListener("touchend", handleEnd, { passive: false });
 
-        // Erase timeout for inactivity
-        function startEraseImageTimer() {
-            clearTimeout(eraseTimeoutDuration);
-            if (eraseStarted) {
-                eraseTimeoutDuration = setTimeout(() => {
-                    ctxCover.clearRect(0, 0, CoverSizeWidth, CoverSizeHeight);
-                    eraseComplete = true;
-                    loadCongratsImage();
-                    startResetGameTimer();
-                }, eraseTimeoutDuration);
-            }
-        }
+       
 
-        // Reset the game after a timeout
-   /*     function startResetGameTimer() {
-            clearTimeout(eraseTimeoutDuration);
-            resetGameTimer = setTimeout(() => {
-                // Reset game if needed
-            }, resetTimeoutDuration);
-        }
-            */
+function startEraseImageTimer() {
+    clearTimeout(eraseTimerId);  // Clear any previous erase timeout
+    if (eraseStarted) {
+        eraseTimerId = setTimeout(() => {  // Store the timer ID here
+            ctxCover.clearRect(0, 0, CoverSizeWidth, CoverSizeHeight);
+            eraseComplete = true;
+            loadCongratsImage();
+            startResetGameTimer();
+        }, eraseTimeoutDuration);
+    }
+}
+
+//reset function
+/*function startResetGameTimer() {
+    clearTimeout(eraseTimerId);  // Clear any previous erase timeout
+    resetGameTimer = setTimeout(() => {
+        resetGame();  // Call the reset function
+    }, resetTimeoutDuration);
+}
+
+function resetGame() {
+    // Clear the canvases
+    ctxCover.clearRect(0, 0, canvasCover.width, canvasCover.height);
+    ctxBackground.clearRect(0, 0, canvasBackground.width, canvasBackground.height);
+
+    // Re-draw the images
+    drawBackgroundImage(container.offsetWidth, container.offsetHeight);
+    drawCoverImage(container.offsetWidth, container.offsetHeight);
+
+    // Reset game state
+    isDrawing = false;
+    eraseStarted = false;
+    eraseComplete = false;
+    lastPosition = null; 
+
+    // Optionally, you can reset any other game variables or states here
+
+    // Optionally, restart any game timers or intervals if needed
+}*/
+        
     });
     </script>
 </head>
