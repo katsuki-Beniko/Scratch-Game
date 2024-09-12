@@ -240,7 +240,7 @@
             clearTimeout(eraseTimeoutDuration);
             if (eraseStarted) {
                 eraseTimeoutDuration = setTimeout(() => {
-                    ctxCover.clearRect(0, 0, CoverSizeWidth, CoverSizeHeight);
+                    ctxCover.clearRect(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
                     eraseComplete = true;
                     loadCongratsImage();
                     startResetGameTimer();
@@ -249,13 +249,12 @@
         }
 
         // Reset the game after a timeout
-   /*     function startResetGameTimer() {
+        function startResetGameTimer() {
             clearTimeout(eraseTimeoutDuration);
             resetGameTimer = setTimeout(() => {
                 // Reset game if needed
             }, resetTimeoutDuration);
         }
-            */
     });
     </script>
 </head>
