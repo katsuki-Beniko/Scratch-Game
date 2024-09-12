@@ -41,7 +41,9 @@
             canvasCover.width = containerWidth * dpr;
             canvasCover.height = containerHeight * dpr;
 
-            // Scale the context for the device pixel ratio
+            // Reset the scale on the contexts to account for DPR
+            ctxBackground.setTransform(1, 0, 0, 1, 0, 0); // Reset transform before applying scaling
+            ctxCover.setTransform(1, 0, 0, 1, 0, 0);      // Reset transform before applying scaling
             ctxBackground.scale(dpr, dpr);
             ctxCover.scale(dpr, dpr);
 
@@ -50,9 +52,11 @@
             drawCoverImage(containerWidth, containerHeight);
         }
 
-        // Adjust canvas size on load and window resize
-        adjustCanvasSize();
+        // Add event listener for orientation changes
         window.addEventListener('resize', adjustCanvasSize);
+        window.addEventListener('orientationchange', adjustCanvasSize);
+
+        adjustCanvasSize(); // Call it on load to initialize sizes
 
         // Load the hidden image (background) and scale it to fit the canvas
         function drawBackgroundImage(containerWidth, containerHeight) {
@@ -126,7 +130,29 @@
             }
         }
 
-// Draw circles along the path between the last position and the current position for smooth erasing
+        // Handle erasing (main function)
+        function erase(e) {
+            if (!isDrawing || eraseComplete) return;
+
+            const { x, y } = getPosition(e);
+
+            const eraseRadius = window.innerWidth < 768 ? 10 : 20;  // 10px for phones, 20px for tablets/desktops
+
+            ctxCover.globalCompositeOperation = "destination-out";
+
+            if (lastPosition) {
+                drawErasePath(lastPosition.x, lastPosition.y, x, y, eraseRadius);
+            } else {
+                ctxCover.beginPath();
+                ctxCover.arc(x, y, eraseRadius, 0, Math.PI * 2);
+                ctxCover.fill();
+            }
+
+            lastPosition = { x, y };
+            checkErasedArea();
+        }
+
+        // Continue drawing erase path to handle fast movement
         function drawErasePath(x0, y0, x1, y1, eraseRadius) {
             const distance = Math.hypot(x1 - x0, y1 - y0);
             const steps = Math.ceil(distance / (eraseRadius / 2)); // Smaller steps for smoothness
@@ -137,39 +163,10 @@
                 const y = y0 + (y1 - y0) * t;
 
                 ctxCover.beginPath();
-                ctxCover.arc(x, y, eraseRadius, 0, Math.PI * 2);  // Erase area with dynamic radius
-                ctxCover.fill();
-            }
-        }
-
-    // Handle erasing (main function)
-        function erase(e) {
-            if (!isDrawing || eraseComplete) return;
-
-            const { x, y } = getPosition(e);
-
-            // Dynamically adjust erase radius for mobile (smaller radius on phones)
-            const eraseRadius = window.innerWidth < 768 ? 10 : 20;  // 10px for phones, 20px for tablets/desktops
-
-            ctxCover.globalCompositeOperation = "destination-out";
-
-            // If there was a previous position, draw circles along the path
-            if (lastPosition) {
-                drawErasePath(lastPosition.x, lastPosition.y, x, y, eraseRadius);
-            } else {
-                // Initial erase circle
-                ctxCover.beginPath();
                 ctxCover.arc(x, y, eraseRadius, 0, Math.PI * 2);
                 ctxCover.fill();
             }
-
-            // Update last position
-            lastPosition = { x, y };
-
-            checkErasedArea();  // Continue checking if enough area is erased
         }
-
-
 
         function checkErasedArea() {
             const imageData = ctxCover.getImageData(coverPositionX, coverPositionY, CoverSizeWidth, CoverSizeHeight);
